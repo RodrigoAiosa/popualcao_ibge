@@ -1,330 +1,200 @@
 """
-Aplicação Streamlit para visualização de dados populacionais do IBGE
-Versão corrigida - Compatível com todos os anos disponíveis
+Módulo para extração de dados populacionais do SIDRA/IBGE
+Versão robusta - Compatível com todos os anos
 """
-import streamlit as st
 import pandas as pd
-import plotly.express as px
-from src.data_extractor import PopulacaoDataExtractor
-from src.utils import get_uf_list, formatar_populacao, get_top_municipios, get_summary_stats
-import time
-import warnings
-warnings.filterwarnings('ignore')
+import sidrapy
+from typing import Optional
+import logging
+from pathlib import Path
 
-# Configuração da página
-st.set_page_config(
-    page_title="População IBGE",
-    page_icon="📍",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+# Configuração de logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# Carregar CSS externo
-def load_css():
-    try:
-        with open("styles.css", "r", encoding="utf-8") as f:
-            css = f.read()
-        st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
-    except FileNotFoundError:
-        # CSS opcional, não crítico
-        pass
-
-load_css()
-
-# Título principal
-st.markdown('<h1>📍 População Municipal</h1>', unsafe_allow_html=True)
-st.markdown('<p class="subtitle">Dados oficiais do IBGE | Tabela SIDRA 6579</p>', unsafe_allow_html=True)
-
-# Inicializa o extrator
-@st.cache_resource
-def init_extractor():
-    return PopulacaoDataExtractor()
-
-extractor = init_extractor()
-
-# Inicializar estado da sessão
-if 'dados_populacao' not in st.session_state:
-    st.session_state['dados_populacao'] = None
-if 'ultimo_ano' not in st.session_state:
-    st.session_state['ultimo_ano'] = None
-if 'faixa_populacao' not in st.session_state:
-    st.session_state['faixa_populacao'] = None
-if 'uf_selecionada' not in st.session_state:
-    st.session_state['uf_selecionada'] = 'Todos'
-
-# Sidebar
-with st.sidebar:
-    st.markdown('<div class="caption">⚡ Controles</div>', unsafe_allow_html=True)
+class PopulacaoDataExtractor:
+    """Classe para extrair dados populacionais do SIDRA"""
     
-    # Seleção do ano
-    anos_disponiveis = ['2024', '2023', '2022', '2021', '2020']
-    ano_selecionado = st.selectbox(
-        "Ano",
-        anos_disponiveis,
-        index=0 if st.session_state['ultimo_ano'] is None else anos_disponiveis.index(st.session_state['ultimo_ano']) if st.session_state['ultimo_ano'] in anos_disponiveis else 0
-    )
+    TABELA_POPULACAO = "6579"
+    NIVEL_MUNICIPIO = "6"
     
-    # Botão de carregamento
-    if st.button("Carregar dados", type="primary"):
-        with st.spinner("Carregando..."):
-            try:
-                df = extractor.extrair_populacao_municipios(ano=ano_selecionado)
-                
-                # Verificar se o DataFrame não está vazio
-                if df is not None and not df.empty:
-                    st.session_state['dados_populacao'] = df
-                    st.session_state['ultimo_ano'] = ano_selecionado
-                    
-                    # Inicializar faixa_populacao com valores do DataFrame
-                    min_pop = int(df['populacao'].min())
-                    max_pop = int(df['populacao'].max())
-                    st.session_state['faixa_populacao'] = (min_pop, max_pop)
-                    
-                    st.success(f"✓ Dados de {ano_selecionado} carregados! Total: {len(df):,} municípios")
-                    time.sleep(0.5)
-                    st.rerun()
-                else:
-                    st.error(f"❌ Nenhum dado encontrado para o ano {ano_selecionado}")
-            except Exception as e:
-                st.error(f"❌ Erro ao carregar dados: {str(e)}")
-    
-    # Carregamento automático (apenas se não houver dados)
-    if st.session_state['dados_populacao'] is None:
-        cache_file = f"populacao_municipios_{ano_selecionado}.csv"
-        df_cache = extractor.carregar_dados_cache(cache_file)
-        if df_cache is not None and not df_cache.empty:
-            st.session_state['dados_populacao'] = df_cache
-            st.session_state['ultimo_ano'] = ano_selecionado
-            
-            # Inicializar faixa_populacao
-            min_pop = int(df_cache['populacao'].min())
-            max_pop = int(df_cache['populacao'].max())
-            st.session_state['faixa_populacao'] = (min_pop, max_pop)
-            
-            st.markdown('<p class="caption">📁 Dados carregados do cache</p>', unsafe_allow_html=True)
-    
-    # Filtros (apenas se dados estiverem carregados)
-    if st.session_state['dados_populacao'] is not None:
-        st.markdown('<div class="divider-light"></div>', unsafe_allow_html=True)
-        st.markdown('<div class="caption">🔍 Filtros</div>', unsafe_allow_html=True)
+    def __init__(self, data_dir: str = "data"):
+        """
+        Inicializa o extrator
         
-        df_filtrado = st.session_state['dados_populacao']
+        Args:
+            data_dir: Diretório onde os dados serão salvos
+        """
+        self.data_dir = Path(data_dir)
+        self.data_dir.mkdir(exist_ok=True)
         
-        if not df_filtrado.empty:
-            # Filtro UF
-            ufs = get_uf_list()
-            uf_options = ['Todos'] + list(ufs.values())
+    def extrair_populacao_municipios(
+        self, 
+        ano: str = "2024",
+        salvar_csv: bool = True,
+        nome_arquivo: Optional[str] = None
+    ) -> Optional[pd.DataFrame]:
+        """
+        Extrai estimativas populacionais por município
+        
+        Args:
+            ano: Ano desejado (formato 'YYYY')
+            salvar_csv: Se True, salva o DataFrame em CSV
+            nome_arquivo: Nome do arquivo CSV (opcional)
             
-            # Manter UF selecionada na sessão
-            current_uf_index = uf_options.index(st.session_state['uf_selecionada']) if st.session_state['uf_selecionada'] in uf_options else 0
-            uf_selecionada = st.selectbox(
-                "Unidade Federativa",
-                uf_options,
-                index=current_uf_index
+        Returns:
+            DataFrame com dados populacionais ou None se erro
+        """
+        try:
+            logger.info(f"Extraindo dados populacionais para o ano {ano}...")
+            
+            # Extrai dados do SIDRA
+            dados = sidrapy.get_table(
+                table_code=self.TABELA_POPULACAO,
+                territorial_level=self.NIVEL_MUNICIPIO,
+                ibge_territorial_code="all",
+                period=ano,
+                format="pandas"
             )
-            st.session_state['uf_selecionada'] = uf_selecionada
             
-            # Filtro população - garantir que sempre tem valores
-            min_pop = int(df_filtrado['populacao'].min())
-            max_pop = int(df_filtrado['populacao'].max())
-            
-            # Verificar se faixa_populacao está definida
-            if st.session_state['faixa_populacao'] is None:
-                st.session_state['faixa_populacao'] = (min_pop, max_pop)
-            
-            # Garantir que os valores estão dentro dos limites
-            current_min, current_max = st.session_state['faixa_populacao']
-            current_min = max(min_pop, min(current_min, max_pop))
-            current_max = min(max_pop, max(current_max, min_pop))
-            
-            faixa_populacao = st.slider(
-                "Faixa populacional",
-                min_pop, max_pop,
-                (current_min, current_max),
-                format="%d"
-            )
-            st.session_state['faixa_populacao'] = faixa_populacao
-
-# Área principal - condicional com tratamento de erro
-try:
-    if st.session_state['dados_populacao'] is not None:
-        df = st.session_state['dados_populacao'].copy()
-        
-        # Verificar se o DataFrame está vazio
-        if df.empty:
-            st.warning("⚠️ Nenhum dado disponível para o ano selecionado. Tente outro ano.")
-        else:
-            # Aplicar filtro UF
-            uf_selecionada = st.session_state.get('uf_selecionada', 'Todos')
-            if uf_selecionada != 'Todos':
-                ufs = get_uf_list()
-                uf_codigo = [k for k, v in ufs.items() if v == uf_selecionada][0]
-                df = df[df['id_municipio'].astype(str).str.startswith(uf_codigo)]
-            
-            # Aplicar filtro população (com verificação de segurança)
-            faixa_populacao = st.session_state.get('faixa_populacao')
-            if faixa_populacao is not None and len(faixa_populacao) == 2:
-                df = df[(df['populacao'] >= faixa_populacao[0]) & 
-                        (df['populacao'] <= faixa_populacao[1])]
-            
-            # Verificar se ainda há dados após os filtros
-            if df.empty:
-                st.warning("⚠️ Nenhum município encontrado com os filtros selecionados. Ajuste os filtros.")
+            # Converte para DataFrame se necessário
+            if isinstance(dados, list):
+                df = pd.DataFrame(dados)
             else:
-                # Estatísticas
-                stats = get_summary_stats(df)
-                
-                col1, col2, col3, col4 = st.columns(4)
-                
-                with col1:
-                    st.markdown(f"""
-                    <div class="metric-card">
-                        <div class="metric-label">Municípios</div>
-                        <div class="metric-value">{stats['total_municipios']:,}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                with col2:
-                    st.markdown(f"""
-                    <div class="metric-card">
-                        <div class="metric-label">População total</div>
-                        <div class="metric-value">{formatar_populacao(stats['populacao_total'])}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                with col3:
-                    st.markdown(f"""
-                    <div class="metric-card">
-                        <div class="metric-label">Média por município</div>
-                        <div class="metric-value">{formatar_populacao(stats['populacao_media'])}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                with col4:
-                    st.markdown(f"""
-                    <div class="metric-card">
-                        <div class="metric-label">Mediana</div>
-                        <div class="metric-value">{formatar_populacao(stats['populacao_mediana'])}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                st.markdown('<div class="divider-light"></div>', unsafe_allow_html=True)
-                
-                # Gráficos
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    st.markdown('<h3>🏆 Mais populosos</h3>', unsafe_allow_html=True)
-                    top_municipios = get_top_municipios(df, 10)
-                    
-                    fig1 = px.bar(
-                        top_municipios,
-                        x='populacao',
-                        y='municipio',
-                        orientation='h',
-                        labels={'populacao': '', 'municipio': ''},
-                        color='populacao',
-                        color_continuous_scale=['#e0e0e0', '#1a1a1a'],
-                        text='populacao'
-                    )
-                    fig1.update_layout(
-                        height=450,
-                        showlegend=False,
-                        xaxis=dict(showgrid=False, showticklabels=False, title=''),
-                        yaxis=dict(showgrid=False, title='', tickfont=dict(size=11)),
-                        plot_bgcolor='white',
-                        paper_bgcolor='white',
-                        margin=dict(l=0, r=0, t=0, b=0)
-                    )
-                    fig1.update_traces(texttemplate='%{text:,}', textposition='outside', textfont=dict(size=10))
-                    st.plotly_chart(fig1, use_container_width=True)
-                
-                with col2:
-                    st.markdown('<h3>📊 Distribuição</h3>', unsafe_allow_html=True)
-                    
-                    if len(df) > 1:
-                        df['faixa_populacional'] = pd.cut(
-                            df['populacao'],
-                            bins=min(8, len(df)//10),  # Evitar muitos bins para poucos dados
-                            labels=False
-                        )
-                        
-                        # Calcular distribuição manualmente
-                        faixas = pd.cut(df['populacao'], bins=min(8, len(df)//10))
-                        distrib = faixas.value_counts().sort_index()
-                        
-                        fig2 = px.bar(
-                            x=[f"{int(b.left):,}-{int(b.right):,}" for b in distrib.index],
-                            y=distrib.values,
-                            labels={'x': '', 'y': ''},
-                            color=distrib.values,
-                            color_continuous_scale=['#e0e0e0', '#1a1a1a']
-                        )
-                        fig2.update_layout(
-                            height=450,
-                            showlegend=False,
-                            xaxis=dict(showgrid=False, tickangle=-45, tickfont=dict(size=9)),
-                            yaxis=dict(showgrid=True, gridcolor='#f0f0f0', title=''),
-                            plot_bgcolor='white',
-                            paper_bgcolor='white',
-                            margin=dict(l=0, r=0, t=0, b=0)
-                        )
-                        st.plotly_chart(fig2, use_container_width=True)
-                    else:
-                        st.info("Dados insuficientes para gerar gráfico de distribuição")
-                
-                # Tabela de dados
-                st.markdown('<h3>📋 Dados</h3>', unsafe_allow_html=True)
-                
-                view_option = st.radio(
-                    "",
-                    ["Top 50", "Top 100", "Todos"],
-                    horizontal=True,
-                    label_visibility="collapsed"
-                )
-                
-                if view_option == "Top 50":
-                    df_display = df.nlargest(min(50, len(df)), 'populacao')
-                elif view_option == "Top 100":
-                    df_display = df.nlargest(min(100, len(df)), 'populacao')
-                else:
-                    df_display = df
-                
-                df_exibicao = df_display[['municipio', 'populacao']].copy()
-                df_exibicao.columns = ['Município', 'População']
-                df_exibicao['População'] = df_exibicao['População'].apply(formatar_populacao)
-                
-                st.dataframe(
-                    df_exibicao,
-                    use_container_width=True,
-                    height=400,
-                    hide_index=True
-                )
-                
-                # Download
-                csv = df.to_csv(index=False, sep=',', encoding='utf-8-sig')
-                st.download_button(
-                    label="📥 Exportar CSV",
-                    data=csv,
-                    file_name=f"populacao_{st.session_state['ultimo_ano']}.csv",
-                    mime="text/csv",
-                    use_container_width=True
-                )
+                df = dados.copy()
+            
+            # Verifica se o DataFrame está vazio
+            if df.empty:
+                logger.warning(f"Nenhum dado retornado para o ano {ano}")
+                return None
+            
+            # Processa os dados
+            df = self._processar_dados(df)
+            
+            if df is None or df.empty:
+                logger.warning(f"Processamento resultou em DataFrame vazio para {ano}")
+                return None
+            
+            # Salva CSV se solicitado
+            if salvar_csv:
+                nome_arquivo = nome_arquivo or f"populacao_municipios_{ano}.csv"
+                caminho_arquivo = self.data_dir / nome_arquivo
+                df.to_csv(caminho_arquivo, index=False, sep=",", encoding="utf-8-sig")
+                logger.info(f"Dados salvos em: {caminho_arquivo}")
+            
+            logger.info(f"Extração concluída: {len(df)} municípios")
+            return df
+            
+        except Exception as e:
+            logger.error(f"Erro na extração dos dados para {ano}: {str(e)}")
+            return None
     
-    else:
-        # Estado inicial
-        st.markdown("""
-        <div class="text-center" style="padding: 3rem 1rem;">
-            <div style="font-size: 4rem; margin-bottom: 1rem;">📍</div>
-            <div style="font-size: 1.25rem; color: var(--color-secondary); margin-bottom: 0.5rem;">
-                Dados populacionais dos municípios brasileiros
-            </div>
-            <div style="font-size: 0.875rem; color: var(--color-secondary-light);">
-                Selecione um ano e clique em "Carregar dados" no menu lateral
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-except Exception as e:
-    st.error(f"❌ Erro ao processar dados: {str(e)}")
-    st.info("🔄 Tente recarregar os dados clicando em 'Carregar dados' novamente")
+    def _processar_dados(self, df: pd.DataFrame) -> Optional[pd.DataFrame]:
+        """
+        Processa e normaliza os dados do SIDRA
+        
+        Args:
+            df: DataFrame cru do SIDRA
+            
+        Returns:
+            DataFrame processado ou None se erro
+        """
+        try:
+            # Mapeamento de colunas (versão estendida para diferentes estruturas)
+            possible_renames = {
+                "D1C": "id_municipio",
+                "D1N": "municipio",
+                "D2C": "ano",
+                "D2N": "periodo",
+                "V": "populacao",
+                # Fallbacks para nomes alternativos
+                "Município (código)": "id_municipio",
+                "Município": "municipio",
+                "Valor": "populacao",
+                "Ano (código)": "ano"
+            }
+            
+            # Renomeia colunas existentes
+            for old_name, new_name in possible_renames.items():
+                if old_name in df.columns:
+                    df = df.rename(columns={old_name: new_name})
+            
+            # Identificar coluna de população (pode ter nomes diferentes)
+            pop_column = None
+            for col in df.columns:
+                if col.lower() in ['v', 'valor', 'populacao', 'população']:
+                    pop_column = col
+                    break
+            
+            if pop_column and pop_column != 'populacao':
+                df = df.rename(columns={pop_column: 'populacao'})
+            
+            # Seleciona colunas desejadas
+            colunas_desejadas = ["id_municipio", "municipio", "ano", "populacao"]
+            colunas_presentes = [col for col in colunas_desejadas if col in df.columns]
+            
+            if not colunas_presentes:
+                logger.error("Nenhuma coluna esperada encontrada no DataFrame")
+                logger.info(f"Colunas disponíveis: {df.columns.tolist()}")
+                return None
+            
+            df = df[colunas_presentes]
+            
+            # Ajusta tipos de dados
+            if "populacao" in df.columns:
+                df["populacao"] = pd.to_numeric(df["populacao"], errors="coerce")
+            
+            if "ano" in df.columns:
+                df["ano"] = df["ano"].astype(str).str[:4]
+            else:
+                # Se não tiver coluna ano, adiciona a partir do contexto
+                df["ano"] = "2024"  # Valor padrão
+            
+            # Remove valores nulos
+            df = df.dropna(subset=["populacao"])
+            df = df[df["populacao"] > 0]  # Remove população zero ou negativa
+            
+            # Remove linhas com município vazio
+            if "municipio" in df.columns:
+                df = df.dropna(subset=["municipio"])
+                df["municipio"] = df["municipio"].astype(str).str.strip()
+                df = df[df["municipio"] != ""]
+            
+            # Ordena por município
+            if "municipio" in df.columns:
+                df = df.sort_values("municipio").reset_index(drop=True)
+            else:
+                df = df.reset_index(drop=True)
+            
+            return df
+            
+        except Exception as e:
+            logger.error(f"Erro no processamento dos dados: {str(e)}")
+            return None
+    
+    def carregar_dados_cache(self, nome_arquivo: str) -> Optional[pd.DataFrame]:
+        """
+        Carrega dados de um arquivo CSV cache
+        
+        Args:
+            nome_arquivo: Nome do arquivo CSV
+            
+        Returns:
+            DataFrame ou None se arquivo não existir
+        """
+        caminho_arquivo = self.data_dir / nome_arquivo
+        if caminho_arquivo.exists():
+            try:
+                logger.info(f"Carregando dados do cache: {caminho_arquivo}")
+                df = pd.read_csv(caminho_arquivo)
+                
+                # Verificar se as colunas essenciais existem
+                if 'populacao' in df.columns:
+                    return df
+                else:
+                    logger.warning(f"Cache inválido: coluna 'populacao' não encontrada")
+                    return None
+            except Exception as e:
+                logger.error(f"Erro ao carregar cache: {str(e)}")
+                return None
+        return None
