@@ -1,5 +1,5 @@
-streamlit>=1.28.0
-sidrapy>=0.8.0
-pandas>=2.0.0
-plotly>=5.17.0
-python-dotenv>=1.0.0
+streamlit
+sidrapy
+pandas
+plotly
+python-dotenv
