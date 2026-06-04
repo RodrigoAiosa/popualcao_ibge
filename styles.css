@@ -1,0 +1,542 @@
+/* ============================================
+   DESIGN SYSTEM - População IBGE
+   Minimalista & Moderno
+   ============================================ */
+
+/* Importação de fontes */
+@import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap');
+
+/* ============================================
+   VARIÁVEIS GLOBAIS
+   ============================================ */
+:root {
+    /* Cores primárias */
+    --color-primary: #1a1a1a;
+    --color-primary-dark: #000000;
+    --color-primary-light: #2d2d2d;
+    
+    /* Cores secundárias */
+    --color-secondary: #666666;
+    --color-secondary-light: #999999;
+    --color-secondary-lighter: #cccccc;
+    
+    /* Cores de fundo */
+    --bg-primary: #ffffff;
+    --bg-secondary: #fafafa;
+    --bg-tertiary: #f5f5f5;
+    
+    /* Cores de borda */
+    --border-light: #eaeaea;
+    --border-medium: #d4d4d4;
+    
+    /* Cores de estado */
+    --color-success: #10b981;
+    --color-error: #ef4444;
+    --color-warning: #f59e0b;
+    --color-info: #3b82f6;
+    
+    /* Espaçamentos */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+    --spacing-2xl: 3rem;
+    
+    /* Bordas */
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    
+    /* Sombras */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    
+    /* Transições */
+    --transition-fast: 0.15s ease;
+    --transition-base: 0.2s ease;
+    --transition-slow: 0.3s ease;
+    
+    /* Z-index */
+    --z-sidebar: 100;
+    --z-modal: 1000;
+    --z-tooltip: 1100;
+}
+
+/* ============================================
+   RESET E BASE
+   ============================================ */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    font-size: 16px;
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--color-primary);
+    background-color: var(--bg-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================
+   STREAMLIT CUSTOMIZATIONS
+   ============================================ */
+
+/* Esconder elementos padrão do Streamlit */
+#MainMenu { visibility: hidden; }
+footer { visibility: hidden; }
+header { visibility: hidden; }
+.stAppDeployButton { display: none; }
+
+/* Main container */
+.main .block-container {
+    padding: var(--spacing-xl) var(--spacing-2xl);
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+    .main .block-container {
+        padding: var(--spacing-lg);
+    }
+}
+
+/* Sidebar */
+section[data-testid="stSidebar"] {
+    background-color: var(--bg-secondary);
+    border-right: 1px solid var(--border-light);
+    padding: var(--spacing-lg) 0;
+}
+
+section[data-testid="stSidebar"] > div {
+    padding: 0 var(--spacing-lg);
+}
+
+/* Scrollbar customizada */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-tertiary);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--color-secondary-lighter);
+    border-radius: var(--radius-sm);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--color-secondary);
+}
+
+/* ============================================
+   TIPOGRAFIA
+   ============================================ */
+
+/* Títulos principais */
+h1 {
+    font-size: 2.5rem !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.02em !important;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: var(--spacing-xs) !important;
+}
+
+h2 {
+    font-size: 1.5rem !important;
+    font-weight: 500 !important;
+    letter-spacing: -0.01em !important;
+    color: var(--color-primary) !important;
+    margin: var(--spacing-lg) 0 var(--spacing-md) 0 !important;
+}
+
+h3 {
+    font-size: 1.25rem !important;
+    font-weight: 500 !important;
+    color: var(--color-primary) !important;
+    margin: var(--spacing-md) 0 var(--spacing-sm) 0 !important;
+}
+
+/* Subtítulos e captions */
+.subtitle {
+    font-size: 0.875rem;
+    color: var(--color-secondary);
+    margin-bottom: var(--spacing-lg);
+}
+
+.caption {
+    font-size: 0.75rem;
+    color: var(--color-secondary-light);
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+}
+
+/* ============================================
+   COMPONENTES
+   ============================================ */
+
+/* Cards */
+.card {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    transition: all var(--transition-base);
+}
+
+.card:hover {
+    border-color: var(--border-medium);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+/* Metric Cards */
+.metric-card {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    transition: all var(--transition-base);
+}
+
+.metric-card:hover {
+    border-color: var(--color-secondary-lighter);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+
+.metric-label {
+    font-size: 0.7rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-secondary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.metric-value {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--color-primary);
+    line-height: 1.2;
+}
+
+.metric-trend {
+    font-size: 0.75rem;
+    color: var(--color-secondary-light);
+    margin-top: var(--spacing-xs);
+}
+
+/* Botões */
+.stButton > button {
+    background: var(--color-primary);
+    color: var(--bg-primary);
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+    transition: all var(--transition-base);
+    width: 100%;
+    cursor: pointer;
+}
+
+.stButton > button:hover {
+    background: var(--color-primary-light);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.stButton > button:active {
+    transform: translateY(0);
+}
+
+.stButton > button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Botão secundário */
+.button-secondary {
+    background: transparent;
+    border: 1px solid var(--border-medium);
+    color: var(--color-primary);
+}
+
+.button-secondary:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--color-secondary);
+}
+
+/* Select boxes */
+.stSelectbox > div > div {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-base);
+}
+
+.stSelectbox > div > div:hover {
+    border-color: var(--border-medium);
+}
+
+/* Slider */
+.stSlider > div > div > div > div {
+    background: var(--color-primary);
+}
+
+.stSlider > div > div > div > div > div {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+/* Checkbox e Radio */
+.stCheckbox > label, .stRadio > label {
+    color: var(--color-primary);
+    font-size: 0.875rem;
+}
+
+/* Alertas e notificações */
+.stAlert {
+    border-radius: var(--radius-md);
+    border-left: 3px solid;
+    padding: var(--spacing-md);
+    margin: var(--spacing-md) 0;
+}
+
+.stAlert[data-baseweb="notification"] {
+    background-color: var(--bg-secondary);
+}
+
+/* Success alert */
+.stAlert[data-baseweb="notification"]:has(.stAlertSuccess) {
+    border-left-color: var(--color-success);
+}
+
+/* Error alert */
+.stAlert[data-baseweb="notification"]:has(.stAlertError) {
+    border-left-color: var(--color-error);
+}
+
+/* Info alert */
+.stAlert[data-baseweb="notification"]:has(.stAlertInfo) {
+    border-left-color: var(--color-info);
+}
+
+/* Warning alert */
+.stAlert[data-baseweb="notification"]:has(.stAlertWarning) {
+    border-left-color: var(--color-warning);
+}
+
+/* Spinner */
+.stSpinner > div {
+    border-top-color: var(--color-primary) !important;
+}
+
+/* ============================================
+   TABELAS E DATAFRAMES
+   ============================================ */
+.stDataFrame {
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.stDataFrame [data-testid="stDataFrameResizable"] {
+    border: none;
+}
+
+/* Cabeçalho da tabela */
+.stDataFrame thead th {
+    background-color: var(--bg-tertiary);
+    color: var(--color-primary);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: var(--spacing-md) !important;
+}
+
+/* Células da tabela */
+.stDataFrame tbody td {
+    padding: var(--spacing-sm) var(--spacing-md) !important;
+    border-top: 1px solid var(--border-light);
+}
+
+/* Hover nas linhas */
+.stDataFrame tbody tr:hover {
+    background-color: var(--bg-tertiary);
+}
+
+/* ============================================
+   EXPANDER E ACORDEÕES
+   ============================================ */
+.streamlit-expanderHeader {
+    font-weight: 500;
+    color: var(--color-primary);
+    background-color: var(--bg-secondary);
+    border-radius: var(--radius-md);
+}
+
+.streamlit-expanderHeader:hover {
+    background-color: var(--bg-tertiary);
+}
+
+/* ============================================
+   TABS
+   ============================================ */
+.stTabs [data-baseweb="tab-list"] {
+    gap: var(--spacing-md);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.stTabs [data-baseweb="tab"] {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-weight: 500;
+    color: var(--color-secondary);
+}
+
+.stTabs [data-baseweb="tab"][aria-selected="true"] {
+    color: var(--color-primary);
+    border-bottom: 2px solid var(--color-primary);
+}
+
+/* ============================================
+   FORMULÁRIOS
+   ============================================ */
+.stTextInput > div > div > input {
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: 0.875rem;
+}
+
+.stTextInput > div > div > input:focus {
+    border-color: var(--color-primary);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(26, 26, 26, 0.1);
+}
+
+/* ============================================
+   DIVISORES
+   ============================================ */
+hr {
+    margin: var(--spacing-lg) 0;
+    border: none;
+    border-top: 1px solid var(--border-light);
+}
+
+.divider-light {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border-light), transparent);
+    margin: var(--spacing-xl) 0;
+}
+
+/* ============================================
+   LOADING STATES
+   ============================================ */
+@keyframes shimmer {
+    0% { background-position: -1000px 0; }
+    100% { background-position: 1000px 0; }
+}
+
+.skeleton {
+    background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--bg-secondary) 50%, var(--bg-tertiary) 75%);
+    background-size: 1000px 100%;
+    animation: shimmer 2s infinite;
+}
+
+/* ============================================
+   TOOLTIPS
+   ============================================ */
+[data-testid="stTooltipContent"] {
+    background-color: var(--color-primary);
+    color: var(--bg-primary);
+    border-radius: var(--radius-sm);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 0.75rem;
+}
+
+/* ============================================
+   RESPONSIVIDADE
+   ============================================ */
+@media (max-width: 1200px) {
+    .metric-value {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .metric-value {
+        font-size: 1.25rem;
+    }
+    
+    h1 {
+        font-size: 1.75rem !important;
+    }
+    
+    h2 {
+        font-size: 1.25rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .metric-card {
+        padding: var(--spacing-md);
+    }
+    
+    .metric-value {
+        font-size: 1rem;
+    }
+}
+
+/* ============================================
+   UTILITÁRIOS
+   ============================================ */
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.text-left { text-align: left; }
+
+.mt-0 { margin-top: 0; }
+.mt-1 { margin-top: var(--spacing-xs); }
+.mt-2 { margin-top: var(--spacing-sm); }
+.mt-3 { margin-top: var(--spacing-md); }
+.mt-4 { margin-top: var(--spacing-lg); }
+.mt-5 { margin-top: var(--spacing-xl); }
+
+.mb-0 { margin-bottom: 0; }
+.mb-1 { margin-bottom: var(--spacing-xs); }
+.mb-2 { margin-bottom: var(--spacing-sm); }
+.mb-3 { margin-bottom: var(--spacing-md); }
+.mb-4 { margin-bottom: var(--spacing-lg); }
+.mb-5 { margin-bottom: var(--spacing-xl); }
+
+/* Print styles */
+@media print {
+    .stSidebar,
+    .stButton,
+    .stDownloadButton {
+        display: none !important;
+    }
+    
+    .main .block-container {
+        padding: 0 !important;
+        max-width: 100% !important;
+    }
+}
