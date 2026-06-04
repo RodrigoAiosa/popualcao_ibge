@@ -1,314 +1,257 @@
 """
 Aplicação Streamlit para visualização de dados populacionais do IBGE
-Versão otimizada para Streamlit Cloud
+Design moderno e minimalista com CSS externo
 """
 import streamlit as st
 import pandas as pd
-import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from src.data_extractor import PopulacaoDataExtractor
-from src.utils import get_uf_list, formatar_populacao
+from src.utils import get_uf_list, formatar_populacao, get_top_municipios, get_summary_stats
 import time
-import warnings
-warnings.filterwarnings('ignore')
 
-# Configuração da página DEVE ser o primeiro comando Streamlit
+# Configuração da página
 st.set_page_config(
-    page_title="População dos Municípios Brasileiros",
-    page_icon="📊",
+    page_title="População IBGE",
+    page_icon="📍",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Cache para o extrator
+# Carregar CSS externo
+def load_css():
+    with open("styles.css", "r", encoding="utf-8") as f:
+        css = f.read()
+    st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
+
+load_css()
+
+# Título principal
+st.markdown('<h1>📍 População Municipal</h1>', unsafe_allow_html=True)
+st.markdown('<p class="subtitle">Dados oficiais do IBGE | Tabela SIDRA 6579</p>', unsafe_allow_html=True)
+
+# Inicializa o extrator
 @st.cache_resource
 def init_extractor():
     return PopulacaoDataExtractor()
 
-# Cache para carregamento de dados
-@st.cache_data(ttl=3600)  # Cache por 1 hora
-def load_population_data(ano):
-    """Carrega dados populacionais com cache"""
-    try:
-        extractor = init_extractor()
-        df = extractor.extrair_populacao_municipios(ano=ano, salvar_csv=False)
-        return df
-    except Exception as e:
-        st.error(f"Erro ao carregar dados: {str(e)}")
-        return None
+extractor = init_extractor()
 
-def criar_grafico_barras(df, titulo):
-    """Cria gráfico de barras com tratamento de erro"""
-    try:
-        fig = px.bar(
-            df.head(10), 
-            x='municipio', 
-            y='populacao',
-            title=titulo,
-            labels={'populacao': 'População', 'municipio': 'Município'},
-            color='populacao',
-            color_continuous_scale='Viridis'
-        )
-        fig.update_layout(
-            showlegend=False, 
-            xaxis_tickangle=-45,
-            height=400,
-            margin=dict(l=20, r=20, t=40, b=80)
-        )
-        return fig
-    except Exception as e:
-        st.warning(f"Não foi possível criar o gráfico: {str(e)}")
-        return None
-
-def criar_grafico_distribuicao(df):
-    """Cria gráfico de distribuição com fallback"""
-    try:
-        # Criar bins para distribuição
-        df_copy = df.copy()
-        df_copy['faixa'] = pd.cut(
-            df_copy['populacao'], 
-            bins=10,
-            precision=0
-        )
-        distrib = df_copy['faixa'].value_counts().sort_index()
-        
-        fig = px.bar(
-            x=[str(x) for x in distrib.index],
-            y=distrib.values,
-            title="Distribuição dos municípios por faixa populacional",
-            labels={'x': 'Faixa Populacional', 'y': 'Número de Municípios'}
-        )
-        fig.update_layout(
-            xaxis_tickangle=-45,
-            height=400,
-            margin=dict(l=20, r=20, t=40, b=80)
-        )
-        return fig
-    except Exception as e:
-        st.warning(f"Não foi possível criar o gráfico de distribuição: {str(e)}")
-        return None
-
-def main():
-    """Função principal da aplicação"""
+# Sidebar
+with st.sidebar:
+    st.markdown('<div class="caption">⚡ Controles</div>', unsafe_allow_html=True)
     
-    # Título principal
-    st.title("📊 Estimativas Populacionais dos Municípios Brasileiros")
-    st.markdown("Dados do IBGE - Tabela SIDRA 6579")
+    # Seleção do ano
+    anos_disponiveis = ['2024', '2023', '2022', '2021', '2020']
+    ano_selecionado = st.selectbox(
+        "Ano",
+        anos_disponiveis,
+        index=0
+    )
     
-    # Sidebar
-    with st.sidebar:
-        st.header("⚙️ Controles")
+    # Botão de carregamento
+    if st.button("Carregar dados", type="primary"):
+        with st.spinner("Carregando..."):
+            try:
+                df = extractor.extrair_populacao_municipios(ano=ano_selecionado)
+                st.session_state['dados_populacao'] = df
+                st.session_state['ultimo_ano'] = ano_selecionado
+                st.success("✓ Dados carregados com sucesso")
+                time.sleep(0.5)
+                st.rerun()
+            except Exception as e:
+                st.error(f"Erro ao carregar: {str(e)}")
+    
+    # Carregamento automático
+    if 'dados_populacao' not in st.session_state:
+        cache_file = f"populacao_municipios_{ano_selecionado}.csv"
+        df_cache = extractor.carregar_dados_cache(cache_file)
+        if df_cache is not None:
+            st.session_state['dados_populacao'] = df_cache
+            st.session_state['ultimo_ano'] = ano_selecionado
+            st.markdown('<p class="caption">📁 Dados carregados do cache</p>', unsafe_allow_html=True)
+    
+    # Filtros
+    if 'dados_populacao' in st.session_state:
+        st.markdown('<div class="divider-light"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="caption">🔍 Filtros</div>', unsafe_allow_html=True)
         
-        # Seleção do ano
-        anos_disponiveis = ['2024', '2023', '2022', '2021', '2020']
-        ano_selecionado = st.selectbox(
-            "Selecione o ano:",
-            anos_disponiveis,
-            index=0
+        # Filtro UF
+        ufs = get_uf_list()
+        uf_selecionada = st.selectbox(
+            "Unidade Federativa",
+            ['Todos'] + list(ufs.values())
         )
         
-        # Botão para carregar dados
-        if st.button("🔄 Carregar Dados", type="primary", use_container_width=True):
-            with st.spinner("Carregando dados do IBGE..."):
-                df = load_population_data(ano_selecionado)
-                if df is not None:
-                    st.session_state['dados_populacao'] = df
-                    st.session_state['ultimo_ano'] = ano_selecionado
-                    st.success(f"✅ Dados de {ano_selecionado} carregados! Total: {len(df):,} municípios")
-                    time.sleep(1)
-                    st.rerun()
-        
-        # Verificar se já existem dados
-        if 'dados_populacao' not in st.session_state:
-            # Tentar carregar automaticamente dados de 2024
-            with st.spinner("Carregando dados padrão..."):
-                df_default = load_population_data("2024")
-                if df_default is not None:
-                    st.session_state['dados_populacao'] = df_default
-                    st.session_state['ultimo_ano'] = "2024"
-                    st.info("📊 Dados de 2024 carregados automaticamente")
-        
-        # Filtros (apenas se dados carregados)
-        if 'dados_populacao' in st.session_state:
-            st.markdown("---")
-            st.header("🔍 Filtros")
-            
-            df_original = st.session_state['dados_populacao']
-            
-            # Filtro por UF
-            ufs = get_uf_list()
-            uf_selecionada = st.selectbox(
-                "Filtrar por UF:",
-                ['Todos (Brasil)'] + list(ufs.values())
-            )
-            
-            # Filtro por faixa populacional
-            min_pop = int(df_original['populacao'].min())
-            max_pop = int(df_original['populacao'].max())
+        # Filtro população
+        df_filtrado = st.session_state['dados_populacao']
+        if not df_filtrado.empty:
+            min_pop = int(df_filtrado['populacao'].min())
+            max_pop = int(df_filtrado['populacao'].max())
             
             faixa_populacao = st.slider(
-                "Faixa populacional:",
+                "Faixa populacional",
                 min_pop, max_pop,
                 (min_pop, max_pop),
                 format="%d"
             )
-            
-            # Número de itens para exibir
-            num_itens = st.selectbox(
-                "Número de municípios no topo:",
-                [10, 20, 50, 100],
-                index=0
-            )
-    
-    # Área principal
-    if 'dados_populacao' in st.session_state:
-        df = st.session_state['dados_populacao'].copy()
-        
-        # Aplica filtros
-        if uf_selecionada != 'Todos (Brasil)':
-            uf_codigo = [k for k, v in ufs.items() if v == uf_selecionada][0]
-            df = df[df['id_municipio'].astype(str).str.startswith(uf_codigo)]
-            st.info(f"📌 Exibindo dados para: {uf_selecionada}")
-        
-        df = df[(df['populacao'] >= faixa_populacao[0]) & 
-                (df['populacao'] <= faixa_populacao[1])]
-        
-        # Estatísticas gerais
-        st.header("📈 Estatísticas Gerais")
-        
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.metric(
-                "🏙️ Total de Municípios",
-                f"{len(df):,}",
-                help="Número total de municípios na seleção atual"
-            )
-        
-        with col2:
-            populacao_total = df['populacao'].sum()
-            st.metric(
-                "👥 População Total",
-                formatar_populacao(populacao_total),
-                help="Soma da população de todos os municípios"
-            )
-        
-        with col3:
-            if not df.empty:
-                municipio_max = df.loc[df['populacao'].idxmax(), 'municipio']
-                populacao_max = df['populacao'].max()
-                st.metric(
-                    "⭐ Mais Populoso",
-                    municipio_max[:25],
-                    formatar_populacao(populacao_max),
-                    help="Município com maior população"
-                )
-        
-        with col4:
-            if not df.empty:
-                municipio_min = df.loc[df['populacao'].idxmin(), 'municipio']
-                populacao_min = df['populacao'].min()
-                st.metric(
-                    "📉 Menos Populoso",
-                    municipio_min[:25],
-                    formatar_populacao(populacao_min),
-                    help="Município com menor população"
-                )
-        
-        # Gráficos
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.subheader(f"🏆 Top {num_itens} Municípios Mais Populosos")
-            if not df.empty:
-                top_municipios = df.nlargest(num_itens, 'populacao')[['municipio', 'populacao']]
-                fig1 = criar_grafico_barras(
-                    top_municipios,
-                    f"Municípios mais populosos - {ano_selecionado}"
-                )
-                if fig1:
-                    st.plotly_chart(fig1, use_container_width=True)
-                else:
-                    # Fallback: tabela simples
-                    st.dataframe(
-                        top_municipios,
-                        column_config={
-                            "municipio": "Município",
-                            "populacao": st.column_config.NumberColumn("População", format="%d")
-                        },
-                        use_container_width=True
-                    )
-        
-        with col2:
-            st.subheader("📊 Distribuição Populacional")
-            if not df.empty and len(df) > 1:
-                fig2 = criar_grafico_distribuicao(df)
-                if fig2:
-                    st.plotly_chart(fig2, use_container_width=True)
-        
-        # Tabela de dados
-        st.subheader("📋 Dados Detalhados")
-        
-        # Opção de ordenação
-        ordenar_por = st.radio(
-            "Ordenar por:",
-            ["População (maior para menor)", "População (menor para maior)"],
-            horizontal=True
-        )
-        
-        if ordenar_por == "População (maior para menor)":
-            df_display = df.nlargest(1000, 'populacao')
-        elif ordenar_por == "População (menor para maior)":
-            df_display = df.nsmallest(1000, 'populacao')
-        else:
-            df_display = df.nsmallest(1000, 'municipio')
-        
-        # Preparar dataframe para exibição
-        df_exibicao = df_display[['municipio', 'populacao']].copy()
-        df_exibicao.columns = ['Município', 'População']
-        
-        # Exibir tabela
-        st.dataframe(
-            df_exibicao,
-            use_container_width=True,
-            height=400,
-            column_config={
-                "Município": st.column_config.TextColumn("Município", width="large"),
-                "População": st.column_config.NumberColumn("População", format="%d")
-            }
-        )
-        
-        # Botão para download
-        csv = df.to_csv(index=False, encoding='utf-8-sig')
-        st.download_button(
-            label="📥 Baixar dados completos (CSV)",
-            data=csv,
-            file_name=f"populacao_municipios_{ano_selecionado}.csv",
-            mime="text/csv",
-            use_container_width=True
-        )
-        
-    else:
-        # Estado inicial - sem dados
-        st.info("👈 Use o painel lateral para carregar os dados populacionais do IBGE")
-        st.markdown("""
-        ### Sobre este aplicativo
-        
-        Este aplicativo permite visualizar e explorar as estimativas populacionais 
-        dos municípios brasileiros, utilizando dados oficiais do IBGE (SIDRA - Tabela 6579).
-        
-        **Funcionalidades:**
-        - 📊 Carregamento automático de dados do SIDRA
-        - 🔍 Filtros por UF e faixa populacional
-        - 📈 Gráficos interativos
-        - 💾 Download dos dados em CSV
-        
-        **Como usar:**
-        1. Selecione o ano desejado no painel lateral
-        2. Clique em "Carregar Dados"
-        3. Explore os dados usando os filtros e visualizações
-        """)
 
-if __name__ == "__main__":
-    main()
+# Área principal - condicional
+if 'dados_populacao' in st.session_state:
+    df = st.session_state['dados_populacao'].copy()
+    
+    # Aplica filtros
+    if uf_selecionada != 'Todos':
+        uf_codigo = [k for k, v in ufs.items() if v == uf_selecionada][0]
+        df = df[df['id_municipio'].astype(str).str.startswith(uf_codigo)]
+    
+    df = df[(df['populacao'] >= faixa_populacao[0]) & 
+            (df['populacao'] <= faixa_populacao[1])]
+    
+    # Estatísticas
+    stats = get_summary_stats(df)
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-label">Municípios</div>
+            <div class="metric-value">{stats['total_municipios']:,}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-label">População total</div>
+            <div class="metric-value">{formatar_populacao(stats['populacao_total'])}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-label">Média por município</div>
+            <div class="metric-value">{formatar_populacao(stats['populacao_media'])}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col4:
+        st.markdown(f"""
+        <div class="metric-card">
+            <div class="metric-label">Mediana</div>
+            <div class="metric-value">{formatar_populacao(stats['populacao_mediana'])}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown('<div class="divider-light"></div>', unsafe_allow_html=True)
+    
+    # Gráficos
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown('<h3>🏆 Mais populosos</h3>', unsafe_allow_html=True)
+        top_municipios = get_top_municipios(df, 10)
+        
+        fig1 = px.bar(
+            top_municipios,
+            x='populacao',
+            y='municipio',
+            orientation='h',
+            labels={'populacao': '', 'municipio': ''},
+            color='populacao',
+            color_continuous_scale=['#e0e0e0', '#1a1a1a'],
+            text='populacao'
+        )
+        fig1.update_layout(
+            height=450,
+            showlegend=False,
+            xaxis=dict(showgrid=False, showticklabels=False, title=''),
+            yaxis=dict(showgrid=False, title='', tickfont=dict(size=11)),
+            plot_bgcolor='white',
+            paper_bgcolor='white',
+            margin=dict(l=0, r=0, t=0, b=0)
+        )
+        fig1.update_traces(texttemplate='%{text:,}', textposition='outside', textfont=dict(size=10))
+        st.plotly_chart(fig1, use_container_width=True)
+    
+    with col2:
+        st.markdown('<h3>📊 Distribuição</h3>', unsafe_allow_html=True)
+        
+        df['faixa_populacional'] = pd.cut(
+            df['populacao'],
+            bins=8,
+            labels=[f'{int(b.left):,}' for b in pd.cut(df['populacao'], bins=8).cat.categories]
+        )
+        distrib = df['faixa_populacional'].value_counts().sort_index()
+        
+        fig2 = px.bar(
+            x=distrib.index,
+            y=distrib.values,
+            labels={'x': '', 'y': ''},
+            color=distrib.values,
+            color_continuous_scale=['#e0e0e0', '#1a1a1a']
+        )
+        fig2.update_layout(
+            height=450,
+            showlegend=False,
+            xaxis=dict(showgrid=False, tickangle=-45, tickfont=dict(size=9)),
+            yaxis=dict(showgrid=True, gridcolor='#f0f0f0', title=''),
+            plot_bgcolor='white',
+            paper_bgcolor='white',
+            margin=dict(l=0, r=0, t=0, b=0)
+        )
+        st.plotly_chart(fig2, use_container_width=True)
+    
+    # Tabela de dados
+    st.markdown('<h3>📋 Dados</h3>', unsafe_allow_html=True)
+    
+    view_option = st.radio(
+        "",
+        ["Top 50", "Top 100", "Todos"],
+        horizontal=True,
+        label_visibility="collapsed"
+    )
+    
+    if view_option == "Top 50":
+        df_display = df.nlargest(50, 'populacao')
+    elif view_option == "Top 100":
+        df_display = df.nlargest(100, 'populacao')
+    else:
+        df_display = df
+    
+    df_exibicao = df_display[['municipio', 'populacao']].copy()
+    df_exibicao.columns = ['Município', 'População']
+    df_exibicao['População'] = df_exibicao['População'].apply(formatar_populacao)
+    
+    st.dataframe(
+        df_exibicao,
+        use_container_width=True,
+        height=400,
+        hide_index=True
+    )
+    
+    # Download
+    csv = df.to_csv(index=False, sep=',', encoding='utf-8-sig')
+    st.download_button(
+        label="📥 Exportar CSV",
+        data=csv,
+        file_name=f"populacao_{ano_selecionado}.csv",
+        mime="text/csv",
+        use_container_width=True
+    )
+    
+else:
+    # Estado inicial
+    st.markdown("""
+    <div class="text-center" style="padding: 3rem 1rem;">
+        <div style="font-size: 4rem; margin-bottom: 1rem;">📍</div>
+        <div style="font-size: 1.25rem; color: var(--color-secondary); margin-bottom: 0.5rem;">
+            Dados populacionais dos municípios brasileiros
+        </div>
+        <div style="font-size: 0.875rem; color: var(--color-secondary-light);">
+            Selecione um ano e clique em "Carregar dados" no menu lateral
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
