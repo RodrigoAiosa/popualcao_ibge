@@ -14,7 +14,8 @@ venv.bak/
 .streamlit/secrets.toml
 
 # Dados
-data/*.csv
+data/
+*.csv
 *.log
 
 # IDE
