@@ -253,7 +253,7 @@ def main():
         # Opção de ordenação
         ordenar_por = st.radio(
             "Ordenar por:",
-            ["População (maior para menor)", "População (menor para maior)", "Nome do município"],
+            ["População (maior para menor)", "População (menor para maior)"],
             horizontal=True
         )
         
