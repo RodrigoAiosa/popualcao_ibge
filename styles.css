@@ -10,90 +10,34 @@
    VARIÁVEIS GLOBAIS
    ============================================ */
 :root {
-    /* Cores primárias */
     --color-primary: #1a1a1a;
-    --color-primary-dark: #000000;
     --color-primary-light: #2d2d2d;
-    
-    /* Cores secundárias */
     --color-secondary: #666666;
     --color-secondary-light: #999999;
-    --color-secondary-lighter: #cccccc;
-    
-    /* Cores de fundo */
     --bg-primary: #ffffff;
     --bg-secondary: #fafafa;
-    --bg-tertiary: #f5f5f5;
-    
-    /* Cores de borda */
     --border-light: #eaeaea;
     --border-medium: #d4d4d4;
-    
-    /* Cores de estado */
-    --color-success: #10b981;
-    --color-error: #ef4444;
-    --color-warning: #f59e0b;
-    --color-info: #3b82f6;
-    
-    /* Espaçamentos */
-    --spacing-xs: 0.25rem;
-    --spacing-sm: 0.5rem;
-    --spacing-md: 1rem;
-    --spacing-lg: 1.5rem;
-    --spacing-xl: 2rem;
-    --spacing-2xl: 3rem;
-    
-    /* Bordas */
-    --radius-sm: 6px;
-    --radius-md: 8px;
     --radius-lg: 12px;
-    --radius-xl: 16px;
-    
-    /* Sombras */
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow-md: 0 1px 3px 0 rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-    
-    /* Transições */
-    --transition-fast: 0.15s ease;
+    --radius-md: 8px;
     --transition-base: 0.2s ease;
-    --transition-slow: 0.3s ease;
-    
-    /* Z-index */
-    --z-sidebar: 100;
-    --z-modal: 1000;
-    --z-tooltip: 1100;
 }
 
 /* ============================================
    RESET E BASE
    ============================================ */
 * {
+    font-family: 'Inter', sans-serif;
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-}
-
-html {
-    font-size: 16px;
-    scroll-behavior: smooth;
-}
-
-body {
-    font-family: 'Inter', sans-serif;
-    font-size: 0.875rem;
-    line-height: 1.5;
-    color: var(--color-primary);
-    background-color: var(--bg-primary);
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
 }
 
 /* ============================================
    STREAMLIT CUSTOMIZATIONS
    ============================================ */
 
-/* Esconder elementos padrão do Streamlit */
+/* Esconder elementos padrão */
 #MainMenu { visibility: hidden; }
 footer { visibility: hidden; }
 header { visibility: hidden; }
@@ -101,14 +45,14 @@ header { visibility: hidden; }
 
 /* Main container */
 .main .block-container {
-    padding: var(--spacing-xl) var(--spacing-2xl);
+    padding: 2rem 2rem;
     max-width: 1400px;
     margin: 0 auto;
 }
 
 @media (max-width: 768px) {
     .main .block-container {
-        padding: var(--spacing-lg);
+        padding: 1rem;
     }
 }
 
@@ -116,26 +60,26 @@ header { visibility: hidden; }
 section[data-testid="stSidebar"] {
     background-color: var(--bg-secondary);
     border-right: 1px solid var(--border-light);
-    padding: var(--spacing-lg) 0;
+    padding: 1.5rem 0;
 }
 
 section[data-testid="stSidebar"] > div {
-    padding: 0 var(--spacing-lg);
+    padding: 0 1.25rem;
 }
 
-/* Scrollbar customizada */
+/* Scrollbar */
 ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-    background: var(--bg-tertiary);
+    background: #f0f0f0;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--color-secondary-lighter);
-    border-radius: var(--radius-sm);
+    background: var(--color-secondary-light);
+    border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -146,7 +90,6 @@ section[data-testid="stSidebar"] > div {
    TIPOGRAFIA
    ============================================ */
 
-/* Títulos principais */
 h1 {
     font-size: 2.5rem !important;
     font-weight: 600 !important;
@@ -155,70 +98,50 @@ h1 {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    margin-bottom: var(--spacing-xs) !important;
+    margin-bottom: 0.25rem !important;
 }
 
-h2 {
-    font-size: 1.5rem !important;
+h2, h3 {
     font-weight: 500 !important;
-    letter-spacing: -0.01em !important;
     color: var(--color-primary) !important;
-    margin: var(--spacing-lg) 0 var(--spacing-md) 0 !important;
 }
 
 h3 {
     font-size: 1.25rem !important;
-    font-weight: 500 !important;
-    color: var(--color-primary) !important;
-    margin: var(--spacing-md) 0 var(--spacing-sm) 0 !important;
+    margin: 1rem 0 0.75rem 0 !important;
 }
 
-/* Subtítulos e captions */
 .subtitle {
     font-size: 0.875rem;
     color: var(--color-secondary);
-    margin-bottom: var(--spacing-lg);
+    margin-bottom: 1.5rem;
 }
 
 .caption {
-    font-size: 0.75rem;
-    color: var(--color-secondary-light);
-    letter-spacing: 0.3px;
+    font-size: 0.7rem;
+    font-weight: 500;
     text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-secondary);
+    margin-bottom: 0.75rem;
 }
 
 /* ============================================
    COMPONENTES
    ============================================ */
 
-/* Cards */
-.card {
-    background: var(--bg-primary);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-lg);
-    padding: var(--spacing-lg);
-    transition: all var(--transition-base);
-}
-
-.card:hover {
-    border-color: var(--border-medium);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-}
-
 /* Metric Cards */
 .metric-card {
     background: var(--bg-primary);
     border: 1px solid var(--border-light);
     border-radius: var(--radius-lg);
-    padding: var(--spacing-lg);
+    padding: 1.25rem;
     transition: all var(--transition-base);
 }
 
 .metric-card:hover {
-    border-color: var(--color-secondary-lighter);
+    border-color: var(--border-medium);
     transform: translateY(-2px);
-    box-shadow: var(--shadow-sm);
 }
 
 .metric-label {
@@ -227,20 +150,14 @@ h3 {
     text-transform: uppercase;
     letter-spacing: 0.5px;
     color: var(--color-secondary);
-    margin-bottom: var(--spacing-xs);
+    margin-bottom: 0.25rem;
 }
 
 .metric-value {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
     font-weight: 600;
     color: var(--color-primary);
     line-height: 1.2;
-}
-
-.metric-trend {
-    font-size: 0.75rem;
-    color: var(--color-secondary-light);
-    margin-top: var(--spacing-xs);
 }
 
 /* Botões */
@@ -260,28 +177,10 @@ h3 {
 .stButton > button:hover {
     background: var(--color-primary-light);
     transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
 }
 
 .stButton > button:active {
     transform: translateY(0);
-}
-
-.stButton > button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-/* Botão secundário */
-.button-secondary {
-    background: transparent;
-    border: 1px solid var(--border-medium);
-    color: var(--color-primary);
-}
-
-.button-secondary:hover {
-    background: var(--bg-tertiary);
-    border-color: var(--color-secondary);
 }
 
 /* Select boxes */
@@ -306,52 +205,18 @@ h3 {
     border-color: var(--color-primary);
 }
 
-/* Checkbox e Radio */
-.stCheckbox > label, .stRadio > label {
-    color: var(--color-primary);
-    font-size: 0.875rem;
-}
-
-/* Alertas e notificações */
+/* Alertas */
 .stAlert {
     border-radius: var(--radius-md);
     border-left: 3px solid;
-    padding: var(--spacing-md);
-    margin: var(--spacing-md) 0;
+    padding: 0.75rem 1rem;
 }
 
 .stAlert[data-baseweb="notification"] {
     background-color: var(--bg-secondary);
 }
 
-/* Success alert */
-.stAlert[data-baseweb="notification"]:has(.stAlertSuccess) {
-    border-left-color: var(--color-success);
-}
-
-/* Error alert */
-.stAlert[data-baseweb="notification"]:has(.stAlertError) {
-    border-left-color: var(--color-error);
-}
-
-/* Info alert */
-.stAlert[data-baseweb="notification"]:has(.stAlertInfo) {
-    border-left-color: var(--color-info);
-}
-
-/* Warning alert */
-.stAlert[data-baseweb="notification"]:has(.stAlertWarning) {
-    border-left-color: var(--color-warning);
-}
-
-/* Spinner */
-.stSpinner > div {
-    border-top-color: var(--color-primary) !important;
-}
-
-/* ============================================
-   TABELAS E DATAFRAMES
-   ============================================ */
+/* Dataframe */
 .stDataFrame {
     border: 1px solid var(--border-light);
     border-radius: var(--radius-lg);
@@ -362,181 +227,65 @@ h3 {
     border: none;
 }
 
-/* Cabeçalho da tabela */
 .stDataFrame thead th {
-    background-color: var(--bg-tertiary);
-    color: var(--color-primary);
+    background-color: var(--bg-secondary);
     font-weight: 600;
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    padding: var(--spacing-md) !important;
+    padding: 0.75rem 1rem !important;
 }
 
-/* Células da tabela */
 .stDataFrame tbody td {
-    padding: var(--spacing-sm) var(--spacing-md) !important;
+    padding: 0.5rem 1rem !important;
     border-top: 1px solid var(--border-light);
 }
 
-/* Hover nas linhas */
 .stDataFrame tbody tr:hover {
-    background-color: var(--bg-tertiary);
+    background-color: var(--bg-secondary);
 }
 
-/* ============================================
-   EXPANDER E ACORDEÕES
-   ============================================ */
+/* Expander */
 .streamlit-expanderHeader {
     font-weight: 500;
-    color: var(--color-primary);
     background-color: var(--bg-secondary);
     border-radius: var(--radius-md);
 }
 
 .streamlit-expanderHeader:hover {
-    background-color: var(--bg-tertiary);
+    background-color: #f0f0f0;
 }
 
-/* ============================================
-   TABS
-   ============================================ */
-.stTabs [data-baseweb="tab-list"] {
-    gap: var(--spacing-md);
-    border-bottom: 1px solid var(--border-light);
-}
-
-.stTabs [data-baseweb="tab"] {
-    padding: var(--spacing-sm) var(--spacing-md);
-    font-weight: 500;
-    color: var(--color-secondary);
-}
-
-.stTabs [data-baseweb="tab"][aria-selected="true"] {
-    color: var(--color-primary);
-    border-bottom: 2px solid var(--color-primary);
-}
-
-/* ============================================
-   FORMULÁRIOS
-   ============================================ */
-.stTextInput > div > div > input {
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-md);
-    padding: var(--spacing-sm) var(--spacing-md);
-    font-size: 0.875rem;
-}
-
-.stTextInput > div > div > input:focus {
-    border-color: var(--color-primary);
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(26, 26, 26, 0.1);
-}
-
-/* ============================================
-   DIVISORES
-   ============================================ */
-hr {
-    margin: var(--spacing-lg) 0;
-    border: none;
-    border-top: 1px solid var(--border-light);
-}
-
+/* Divisor */
 .divider-light {
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--border-light), transparent);
-    margin: var(--spacing-xl) 0;
-}
-
-/* ============================================
-   LOADING STATES
-   ============================================ */
-@keyframes shimmer {
-    0% { background-position: -1000px 0; }
-    100% { background-position: 1000px 0; }
-}
-
-.skeleton {
-    background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--bg-secondary) 50%, var(--bg-tertiary) 75%);
-    background-size: 1000px 100%;
-    animation: shimmer 2s infinite;
-}
-
-/* ============================================
-   TOOLTIPS
-   ============================================ */
-[data-testid="stTooltipContent"] {
-    background-color: var(--color-primary);
-    color: var(--bg-primary);
-    border-radius: var(--radius-sm);
-    padding: var(--spacing-xs) var(--spacing-sm);
-    font-size: 0.75rem;
-}
-
-/* ============================================
-   RESPONSIVIDADE
-   ============================================ */
-@media (max-width: 1200px) {
-    .metric-value {
-        font-size: 1.5rem;
-    }
-}
-
-@media (max-width: 768px) {
-    .metric-value {
-        font-size: 1.25rem;
-    }
-    
-    h1 {
-        font-size: 1.75rem !important;
-    }
-    
-    h2 {
-        font-size: 1.25rem !important;
-    }
-}
-
-@media (max-width: 480px) {
-    .metric-card {
-        padding: var(--spacing-md);
-    }
-    
-    .metric-value {
-        font-size: 1rem;
-    }
+    margin: 1.25rem 0;
+    border-top: 1px solid var(--border-light);
 }
 
 /* ============================================
    UTILITÁRIOS
    ============================================ */
-.text-center { text-align: center; }
-.text-right { text-align: right; }
-.text-left { text-align: left; }
+.text-center {
+    text-align: center;
+}
 
-.mt-0 { margin-top: 0; }
-.mt-1 { margin-top: var(--spacing-xs); }
-.mt-2 { margin-top: var(--spacing-sm); }
-.mt-3 { margin-top: var(--spacing-md); }
-.mt-4 { margin-top: var(--spacing-lg); }
-.mt-5 { margin-top: var(--spacing-xl); }
+/* Responsividade */
+@media (max-width: 1200px) {
+    .metric-value {
+        font-size: 1.25rem;
+    }
+}
 
-.mb-0 { margin-bottom: 0; }
-.mb-1 { margin-bottom: var(--spacing-xs); }
-.mb-2 { margin-bottom: var(--spacing-sm); }
-.mb-3 { margin-bottom: var(--spacing-md); }
-.mb-4 { margin-bottom: var(--spacing-lg); }
-.mb-5 { margin-bottom: var(--spacing-xl); }
-
-/* Print styles */
-@media print {
-    .stSidebar,
-    .stButton,
-    .stDownloadButton {
-        display: none !important;
+@media (max-width: 768px) {
+    h1 {
+        font-size: 1.75rem !important;
     }
     
-    .main .block-container {
-        padding: 0 !important;
-        max-width: 100% !important;
+    .metric-value {
+        font-size: 1rem;
+    }
+    
+    .metric-card {
+        padding: 0.875rem;
     }
 }
