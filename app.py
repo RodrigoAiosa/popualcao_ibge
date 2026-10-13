@@ -9,6 +9,7 @@ import sidrapy
 from typing import Dict, Optional
 import time
 import warnings
+from esconder_selo import esconder_selo_streamlit
 warnings.filterwarnings('ignore')
 
 # Configuração da página
@@ -18,6 +19,7 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+esconder_selo_streamlit()  # oculta os controles do Streamlit Cloud
 
 # ============================================
 # CARREGAR CSS EXTERNO
